@@ -5,11 +5,17 @@ class SessionsController < ApplicationController
 
   def create
     user_info = request.env['omniauth.auth']
-    binding.pry
+    @user = User.find_by(twitter_id: user_info['uid']) || User.create_with_omniauth(user_info)
 
-    user = User.find_by(provider: auth['provider'], uid: auth['uid']) || User.create_with_omniauth(auth)
-    session[:user_id] = user.id
-    redirect_to root_url, notice: 'Signed in!'
+    @user.update(
+      token: user_info['credentials']['token'],
+      refresh_token: user_info['credentials']['refresh_token'],
+      expires_at: Time.at(user_info['credentials']['expires_at']).to_datetime
+    )
+
+    session[:user_id] = @user.id
+    render json: @user
+    # redirect_to '/bookmarks', notice: 'Signed in!'
   end
 
   def destroy
